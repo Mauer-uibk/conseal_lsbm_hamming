@@ -102,30 +102,45 @@ class TestHammingLSBM(unittest.TestCase):
         self.assertLess(time_sim, time_true)
 
     def test_hamming_embed_extract(self):
+        for k in [3, 4, 5]:
+            for seed in [42, 123]:
+                for msg_size in [10, 100]:
+                    with self.subTest(k=k, seed=seed, msg_size=msg_size):
+                        n = 2**k - 1
+                        # Calculate required blocks to fit message size in bits
+                        num_blocks = int(np.ceil((msg_size * 8) / k))
+                        
+                        rng = np.random.default_rng(seed)
+                        cover = rng.integers(0, 256, size=(num_blocks, n), dtype=np.uint8)
+                        
+                        msg = rng.integers(0, 256, size=msg_size, dtype=np.uint8)
+
+                        embed_rng = np.random.default_rng(seed + 1)
+                        stego = cl.coding.hamming.embed_message_lsbm_hamming(
+                            cover,
+                            msg,
+                            k,
+                            rng=embed_rng
+                        )
+
+                        decoded_bits = cl.coding.hamming.extract_lsbm_hamming(
+                            stego,
+                            k,
+                            num_bits=len(msg) * 8
+                        )
+                        expected_bits = np.unpackbits(msg)
+                        np.testing.assert_array_equal(decoded_bits, expected_bits)
+
+    def test_hamming_message_too_long(self):
         k = 4
         n = 2**k - 1
-        num_blocks = 200
-
-        rng = np.random.default_rng(42)
-        cover = rng.integers(0, 256, size=(num_blocks, n), dtype=np.uint8)
-        msg = rng.integers(0, 2, size=(num_blocks, k), dtype=np.uint8)
-
-        embed_rng = np.random.default_rng(43)
-        stego = np.empty_like(cover)
-        for i in range(num_blocks):
-            stego[i] = cl.coding.hamming.embed_lsbm_hamming(
-                cover[i],
-                msg[i],
-                k,
-                rng=embed_rng
-            )
-
-        decoded = cl.coding.hamming.extract_lsbm_hamming(
-            stego,
-            k,
-            num_bits=num_blocks * k
-        )
-        np.testing.assert_array_equal(decoded, msg.reshape(-1))
+        # Cover is only long enough for 1 block
+        cover = np.zeros(n, dtype=np.uint8)
+        # Message is 2 bytes = 16 bits, requiring ceil(16/4) = 4 blocks
+        msg = np.array([255, 255], dtype=np.uint8)
+        
+        with self.assertRaises(ValueError):
+            cl.coding.hamming.embed_message_lsbm_hamming(cover, msg, k)
 
     def test_analytical_e(self):
         # We know for LSBM without coding replacing 1 bit/pixel, e approaches 2

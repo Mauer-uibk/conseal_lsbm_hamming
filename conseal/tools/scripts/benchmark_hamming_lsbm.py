@@ -1,5 +1,5 @@
 """Benchmark Hamming LSBM embedding and simulation."""
-
+"""@copyright: large parts of the benchmarking script where written with the help of gemini 3.1. Pro"""
 from __future__ import annotations
 
 import argparse
@@ -192,7 +192,7 @@ def run() -> None:
         "--k",
         type=int,
         nargs="*",
-        default=[2, 3, 4],
+        default=[2, 3, 4, 5],
         help="Hamming code parameters k to benchmark."
     )
     parser.add_argument(

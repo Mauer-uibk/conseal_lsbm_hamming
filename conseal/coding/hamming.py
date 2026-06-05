@@ -126,6 +126,54 @@ def embed_lsbm_hamming(
     return y
 
 
+def embed_message_lsbm_hamming(
+    cover: np.ndarray,
+    msg: np.ndarray,
+    k: int,
+    rng: np.random.Generator | None = None
+) -> np.ndarray:
+    """Embed an arbitrary-length message using LSBM with a Hamming code.
+    
+    The message elements should be in [0, 255] (bytes). They are unpacked into bits.
+    
+    :param cover: Cover array of arbitrary shape.
+    :param msg: Message array with values from 0 to 255.
+    :param k: Number of message bits per block.
+    :param rng: Optional RNG for tie-breaking.
+    :return: Stego array of the same shape as the cover with the message embedded.
+    """
+    msg_bits = np.unpackbits(np.asarray(msg, dtype=np.uint8))
+    
+    n = 2**k - 1
+    num_blocks = int(np.ceil(len(msg_bits) / k))
+    required_len = num_blocks * n
+    
+    if cover.size < required_len:
+        raise ValueError('Cover is too short to embed the message.')
+        
+    # Pad message bits with zeros if length is not a multiple of k
+    if len(msg_bits) % k != 0:
+        pad_len = k - (len(msg_bits) % k)
+        msg_bits = np.pad(msg_bits, (0, pad_len), constant_values=0)
+        
+    stego = cover.copy()
+    stego_flat = stego.reshape(-1)
+    
+    msg_blocks = msg_bits.reshape(-1, k)
+    
+    for i in range(num_blocks):
+        start = i * n
+        end = start + n
+        stego_flat[start:end] = embed_lsbm_hamming(
+            stego_flat[start:end],
+            msg_blocks[i],
+            k,
+            rng=rng
+        )
+        
+    return stego
+
+
 def extract_lsbm_hamming(
     y: np.ndarray,
     k: int,
