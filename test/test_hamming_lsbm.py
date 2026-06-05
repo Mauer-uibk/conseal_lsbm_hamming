@@ -20,6 +20,47 @@ class TestHammingLSBM(unittest.TestCase):
                                 [1 ,0 ,1 ,0 ,1 ,0 ,1 ,0 ,1 ,0 ,1 ,0 ,1 ,0 ,1]])
         np.testing.assert_array_equal(H_k4.astype(int), expected_k4)    
 
+    def test_lsbm_hamming_embed(self):
+        k = 3
+        cover = np.array([155, 144, 133, 122, 111, 100, 99], dtype=np.int16)
+        msg = np.array([1, 0, 1], dtype=np.int8)
+
+        embed_rng = np.random.default_rng(123)
+        stego = cl.coding.hamming.embed_lsbm_hamming(
+            cover,
+            msg,
+            k,
+            rng=embed_rng
+        )
+        expected_stego = np.array([155, 144, 133, 122, 110, 100, 99], dtype=np.int16)
+        np.testing.assert_array_equal(stego, expected_stego)
+
+    def test_lsbm_hamming_no_change(self):
+        k = 3
+        cover = np.array([155, 144, 133, 122, 111, 100, 99], dtype=np.int16)
+        msg = np.array([0, 0, 0], dtype=np.int8)
+
+        embed_rng = np.random.default_rng(123)
+        stego = cl.coding.hamming.embed_lsbm_hamming(
+            cover,
+            msg,
+            k,
+            rng=embed_rng
+        )
+        np.testing.assert_array_equal(stego, cover)
+
+        # Test with a message equal to the current syndrome -> no change
+        H = cl.coding.hamming.generate_parity_matrix(k)
+        syndrome = (H @ (cover % 2)) % 2
+        msg2 = syndrome.astype(np.int8)
+        stego2 = cl.coding.hamming.embed_lsbm_hamming(
+            cover,
+            msg2,
+            k,
+            rng=embed_rng
+        )
+        np.testing.assert_array_equal(stego2, cover)
+
     def test_hamming_simulation_vs_true(self):
         k = 3
         num_blocks = 1000

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import csv
+from pathlib import Path
 import time
 import numpy as np
 import conseal as cl
@@ -12,6 +14,91 @@ def _safe_div(num: float, den: float) -> float:
     if den == 0:
         return float('inf')
     return num / den
+
+
+def _write_csv(path: Path, rows: list[dict]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _plot_k_results(rows: list[dict], path: Path) -> None:
+    if not rows:
+        return
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise SystemExit(
+            "matplotlib is required for plotting. Install with: pip install matplotlib"
+        ) from exc
+
+    k_vals = [row["k"] for row in rows]
+    e_true = [row["e_true"] for row in rows]
+    e_sim = [row["e_sim"] for row in rows]
+    speedup = [
+        _safe_div(row["time_true"], row["time_sim"]) if row["time_sim"] > 0 else 0.0
+        for row in rows
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+    axes[0].plot(k_vals, e_true, marker="o", label="e_true")
+    axes[0].plot(k_vals, e_sim, marker="s", label="e_sim")
+    axes[0].set_xlabel("k")
+    axes[0].set_ylabel("embedding efficiency (bits/change)")
+    axes[0].set_title("True vs simulated efficiency")
+    axes[0].grid(True, alpha=0.3)
+    axes[0].legend()
+
+    axes[1].plot(k_vals, speedup, marker="o", color="tab:green")
+    axes[1].set_xlabel("k")
+    axes[1].set_ylabel("speedup (time_true / time_sim)")
+    axes[1].set_title("Simulation speedup")
+    axes[1].grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
+def _plot_alpha_results(rows: list[dict], path: Path) -> None:
+    if not rows:
+        return
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise SystemExit(
+            "matplotlib is required for plotting. Install with: pip install matplotlib"
+        ) from exc
+
+    alpha_vals = [row["alpha"] for row in rows]
+    e_analytical = [row["e_analytical"] for row in rows]
+    e_sim = [row["e_sim"] for row in rows]
+    gain = [_safe_div(row["e_analytical"], 2.0) for row in rows]
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+    axes[0].plot(alpha_vals, e_analytical, marker="o", label="e_analytical")
+    axes[0].plot(alpha_vals, e_sim, marker="s", label="e_sim")
+    axes[0].set_xlabel("alpha")
+    axes[0].set_ylabel("embedding efficiency (bits/change)")
+    axes[0].set_title("Analytical vs simulated")
+    axes[0].grid(True, alpha=0.3)
+    axes[0].legend()
+
+    axes[1].plot(alpha_vals, gain, marker="o", color="tab:purple")
+    axes[1].set_xlabel("alpha")
+    axes[1].set_ylabel("detectability gain (e / 2)")
+    axes[1].set_title("Coding gain vs uncoded")
+    axes[1].grid(True, alpha=0.3)
+
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
 
 def _bench_true(
     k: int,
@@ -133,6 +220,26 @@ def run() -> None:
         default=12345,
         help="Random seed for reproducibility."
     )
+    parser.add_argument(
+        "--csv-dir",
+        default=".",
+        help="Directory where CSV outputs are written."
+    )
+    parser.add_argument(
+        "--csv-prefix",
+        default="hamming_benchmark",
+        help="Prefix for CSV output filenames."
+    )
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Generate PNG plots from benchmark results."
+    )
+    parser.add_argument(
+        "--plot-dir",
+        default=".",
+        help="Directory where plot images are written."
+    )
     args = parser.parse_args()
 
     seed_seq = np.random.SeedSequence(args.seed)
@@ -185,6 +292,26 @@ def run() -> None:
         })
 
     _print_alpha_results(alpha_rows)
+
+    csv_dir = Path(args.csv_dir)
+    _write_csv(csv_dir / f"{args.csv_prefix}_k.csv", k_rows)
+    _write_csv(csv_dir / f"{args.csv_prefix}_alpha.csv", alpha_rows)
+    print(
+        f"\nSaved CSV: {csv_dir / f'{args.csv_prefix}_k.csv'}"
+        f"\nSaved CSV: {csv_dir / f'{args.csv_prefix}_alpha.csv'}"
+    )
+
+    if args.plot:
+        plot_dir = Path(args.plot_dir)
+        plot_dir.mkdir(parents=True, exist_ok=True)
+        plot_k_path = plot_dir / f"{args.csv_prefix}_k.png"
+        plot_alpha_path = plot_dir / f"{args.csv_prefix}_alpha.png"
+        _plot_k_results(k_rows, plot_k_path)
+        _plot_alpha_results(alpha_rows, plot_alpha_path)
+        print(
+            f"\nSaved plot: {plot_k_path}"
+            f"\nSaved plot: {plot_alpha_path}"
+        )
 
 
 if __name__ == "__main__":

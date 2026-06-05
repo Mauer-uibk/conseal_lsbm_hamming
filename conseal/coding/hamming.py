@@ -99,17 +99,22 @@ def embed_lsbm_hamming(
 
     H = generate_parity_matrix(k)
     y = x.astype(np.int16, copy=True) if np.issubdtype(x.dtype, np.integer) else x.copy()
-    syndrome = np.dot(H, y % 2) % 2
+    
+    # The change vector is c = m - H * y mod 2, 
+    # which indicates the single bit flip needed to correct the syndrome.
+    syndrome = np.dot(H, y % 2) % 2 
     diff = (m - syndrome) % 2
+
+    x_min, x_max = 0, 255
 
     if np.any(diff):
         diff_val = int(diff.dot(1 << np.arange(diff.shape[0])[::-1]))
         if diff_val > 0:
             idx = diff_val - 1
             value = int(y[idx])
-            if value <= 0: # only the equal case should happen
+            if value <= x_min:
                 y[idx] = value + 1
-            elif value >= 255: # only the equal case should happen for uint8, but we check for 255 to be safe
+            elif value >= x_max:
                 y[idx] = value - 1
             else:
                 step = rng.choice([-1, 1]) if rng is not None else np.random.choice([-1, 1]) # here we need a random gerator to select if we go up or down
@@ -202,7 +207,6 @@ def _mix_for_alpha(alpha: float) -> tuple[int, int, float, float]:
             weight_k = (alpha - alpha_k1) / (alpha_k - alpha_k1)
             return k, k + 1, weight_k, 1.0 - weight_k
         k += 1
-
 
 def _changes_per_element(alpha: float) -> float:
     """Compute expected changes per element for a target alpha.
