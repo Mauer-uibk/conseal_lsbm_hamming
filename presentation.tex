@@ -5,8 +5,7 @@
 \usepackage{amsmath}
 
 \title{Matrix Embedding with LSBM and Hamming Codes}
-\subtitle{Steganography Course Project}
-\author{}
+\author{Marcel Auer}
 \date{\today}
 
 \begin{document}
@@ -22,12 +21,6 @@
         \item \textbf{Syndrome Calculation}: Compute $s = H \cdot y \pmod{2}$. The required change is $m - s \pmod{2}$.
         \item \textbf{Modification}: Find the index to change based on the difference. 
         \item \textbf{LSBM}: In LSB Matching, changing the LSB equates to randomly adding or subtracting $1$ from the pixel intensity, ensuring boundaries (like $0$ and $x_{max}$) are respected.
-    \end{itemize}
-    \vspace{0.5em}
-    \textbf{Advantages}
-    \begin{itemize}
-        \item Significantly increases embedding efficiency $e$ compared to baseline steganography.
-        \item Reduces the number of noticeable modifications (changes) in the cover object.
     \end{itemize}
 \end{frame}
 
@@ -45,28 +38,19 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{3. Performance and Precision Evaluation}
-    \textbf{Speed and Precision (Simulation vs. True Embedding)}
-    \begin{itemize}
-        \item \textbf{Precision:} The simulated embedding efficiency $e_{\text{sim}}$ matches the $e_{\text{true}}$ of fully processed image blocks up to high statistical precision.
-        \item \textbf{Speedup:} The simulation reduces evaluation times from the millisecond/second range down to magnitudes of microseconds ($>10^3\times$ speedup).
-    \end{itemize}
-    \vspace{0.5em}
-    \textbf{Detectability vs. Uncoded LSBM}
-    \begin{itemize}
-        \item \textbf{Uncoded LSBM Baseline:} Random message flipping results in an embedding efficiency of $e \approx 2$ (bits embedded per change).
-        \item \textbf{Coded Integrity:} The calculated analytical $e$ progressively climbs well above $2$, scaling directly with block sizes (reducing $\alpha$).
-        \item \textbf{Detectability Gain:} Because detectability correlates directly with the number of changes, our steganography achieves a significant drop in detectability (often reducing changes by multiples).
-    \end{itemize}
+\begin{frame}{Embedding efficiency $\varepsilon$ for different $k$}
+    \centering
+    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_k_efficiency.png}
 \end{frame}
 
-\begin{frame}{4. Benchmark Plots}
+\begin{frame} {Speedup of Hamming code simulation}
     \centering
-    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_k.png}\\
-    \vspace{0.4em}
-    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_alpha.png}
-    \\
-    \scriptsize Generated with the benchmark script using \texttt{--plot --plot-dir plots}.
+    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_k_speedup.png}
+\end{frame}
+
+\begin{frame} {LSBM hamming against reg. LSBM}
+    \centering
+    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_hcf_pe.png}
 \end{frame}
 
 \begin{frame}{Conclusion}
