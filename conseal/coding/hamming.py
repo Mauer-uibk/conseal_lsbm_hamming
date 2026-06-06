@@ -1,6 +1,6 @@
 """Implementation of matrix embedding.
 
-Author: Martin Benes
+Author: Martin Benes and Marcel Auer
 Affiliation: University of Innsbruck
 """
 
@@ -42,6 +42,12 @@ def hamming_params(k: int) -> tuple[int, float, float, float]:
         - alpha: embedding rate in bits per element.
         - rc: relative change rate (changes per element).
         - e: embedding efficiency in bits per change.
+
+    :Example:
+
+    >>> n, alpha, rc, e = hamming_params(3)
+    >>> print(f"n={n}, alpha={alpha:.3f}, rc={rc:.3f}, e={e:.3f}")
+    n=7, alpha=0.429, rc=0.875, e=3.429
     """
     n = 2**k - 1
     alpha = k / n
@@ -54,19 +60,24 @@ def generate_parity_matrix(k: int) -> np.ndarray:
 
     The matrix columns are the binary representation of 1..n, with
     n = 2**k - 1.
-    example for k=3:
-H = [[0, 0, 0, 1, 1, 1, 1],
-     [0, 1, 1, 0, 0, 1, 1],
-     [1, 0, 1, 0, 1, 0, 1]]
-
-    example for k=4:
-H = [[0 0 0 0 0 0 0 1 1 1 1 1 1 1 1]
-    [0 0 0 1 1 1 1 0 0 0 0 1 1 1 1]
-    [0 1 1 0 0 1 1 0 0 1 1 0 0 1 1]
-    [1 0 1 0 1 0 1 0 1 0 1 0 1 0 1]]
 
     :param k: Number of message bits.
     :return: Parity-check matrix H of shape (k, n).
+
+    :Example:
+
+    >>> H = generate_parity_matrix(3)
+    >>> print(H)
+    [[0, 0, 0, 1, 1, 1, 1],
+    [0, 1, 1, 0, 0, 1, 1],
+    [1, 0, 1, 0, 1, 0, 1]]
+
+    >>> H = generate_parity_matrix(4)
+    >>> print(H)
+    [[0 0 0 0 0 0 0 1 1 1 1 1 1 1 1]
+    [0 0 0 1 1 1 1 0 0 0 0 1 1 1 1]
+    [0 1 1 0 0 1 1 0 0 1 1 0 0 1 1]
+    [1 0 1 0 1 0 1 0 1 0 1 0 1 0 1]]
     """
     n = 2**k - 1
     H = np.zeros((k, n), dtype=int)
@@ -92,6 +103,22 @@ def embed_lsbm_hamming(
     :param k: Number of message bits.
     :param rng: Optional RNG for tie-breaking between +1 and -1.
     :return: Stego block of shape (n,).
+    
+    :Example:
+    >>> k = 3
+    >>> cover = np.array([155, 144, 133, 122, 111, 100, 99], dtype=np.int16)
+    >>> msg = np.array([1, 0, 1], dtype=np.int8)
+
+    >>> embed_rng = np.random.default_rng(123)
+    >>> stego = cl.coding.hamming.embed_lsbm_hamming(
+    ...     cover,
+            msg,
+            k,
+            rng=embed_rng
+        )
+
+    >>> print(stego)
+    [155 144 133 122 110 100  99]
     """
     
     n = 2**k - 1
@@ -141,6 +168,22 @@ def embed_message_lsbm_hamming(
     :param k: Number of message bits per block.
     :param rng: Optional RNG for tie-breaking.
     :return: Stego array of the same shape as the cover with the message embedded.
+    
+    :Example:
+
+    >>> k = 3
+    >>> cover = np.array([155, 144, 133, 122, 111, 100, 99], dtype=np.int16)
+    >>> msg = np.array
+    ...     ([1, 0, 1], dtype=np.int8)  # This will be unpacked to bits [1, 0, 1, 0, 0, 0, ...] 
+    >>> embed_rng = np.random.default_rng(123)
+    >>> stego = cl.coding.hamming.embed_message_lsbm_hamming(
+    ...     cover,
+            msg,
+            k,
+            rng=embed_rng
+        )
+    >>> print(stego)
+    [155 144 133 122 110 100  99]
     """
     msg_bits = np.unpackbits(np.asarray(msg, dtype=np.uint8))
     
@@ -191,6 +234,20 @@ def extract_lsbm_hamming(
     :param k: Number of message bits per block.
     :param num_bits: Optional total number of message bits to return.
     :return: Decoded message bits as a 1D array of length ``k * num_blocks``.
+    
+    :Example:
+    >>> k = 3
+    >>> cover = np.array([155, 144, 133, 122, 111, 100, 99], dtype=np.int16)
+    >>> msg = np.array([1, 0, 1], dtype=np.int8)
+    >>> embed_rng = np.random.default_rng(123)
+    >>> stego = cl.coding.hamming.embed_message_lsbm_hamming(
+    ...     cover,
+            msg,
+            k,
+            rng=embed_rng
+        )
+    >>> extracted_msg = cl.coding.hamming.extract_lsbm_hamming(stego, k, num_bits=len(msg))
+    >>> assert np.array_equal(extracted_msg, msg)
     """
     n = 2**k - 1
     H = generate_parity_matrix(k)
@@ -229,6 +286,9 @@ def simulate_embedding(
     :param num_blocks: Number of independent blocks to simulate.
     :param rng: Optional RNG for reproducibility.
     :return: Number of changed blocks.
+
+    :Example:
+    >>> num_changes = cl.coding.hamming.simulate_embedding(3, 1000, rng=np.random.default_rng(12345))
     """
     prob_change = (2**k - 1) / (2**k)
     if rng is None:
@@ -243,6 +303,11 @@ def _mix_for_alpha(alpha: float) -> tuple[int, int, float, float]:
 
     :param alpha: Target embedding rate in (0, 1].
     :return: Tuple (k, k+1, weight_k, weight_k1).
+
+    :Example:
+    >>> k, k1, w_k, w_k1 = _mix_for_alpha(0.4)
+    >>> print(f"k={k}, k1={k1}, w_k={w_k:.3f}, w_k1={w_k1:.3f}")
+    k=3, k1=4, w_k=0.714, w_k1=0.286
     """
     if not (0 < alpha <= 1):
         raise ValueError('alpha must be in (0, 1]')
@@ -275,6 +340,9 @@ def analytical_e(alpha: float) -> float:
 
     :param alpha: Target embedding rate in (0, 1].
     :return: Embedding efficiency in bits per change.
+    
+    :Example:
+    >>> e_alpha = cl.coding.hamming.analytical_e(0.4)    
     """
     changes_per_element = _changes_per_element(alpha)
     return alpha / changes_per_element
@@ -293,6 +361,9 @@ def simulate_embedding_alpha(
     :param num_elements: Number of elements to simulate.
     :param rng: Optional RNG for reproducibility.
     :return: Number of changed elements.
+
+    :Example:
+    >>> num_changes = cl.coding.hamming.simulate_embedding_alpha(0.4, 1000, rng=np.random.default_rng(12345))
     """
     changes_per_element = _changes_per_element(alpha)
     if rng is None:

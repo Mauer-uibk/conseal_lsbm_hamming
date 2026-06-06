@@ -346,7 +346,6 @@ def _true_embed_and_verify(cover: np.ndarray, alpha: float, rng: np.random.Gener
 
     return stego
 
-
 def _true_embed_uncoded_and_verify(cover: np.ndarray, alpha: float, rng: np.random.Generator) -> np.ndarray:
     """Perform true uncoded LSBM and verify extraction."""
     stego = cover.copy().astype(np.int16)
