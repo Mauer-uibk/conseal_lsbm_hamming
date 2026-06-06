@@ -40,17 +40,22 @@
 
 \begin{frame}{Embedding efficiency $\varepsilon$ for different $k$}
     \centering
-    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_k_efficiency.png}
+    \includegraphics[width=\textwidth]{plots/hamming_benchmark_k_efficiency.png}
 \end{frame}
 
-\begin{frame} {Speedup of Hamming code simulation}
+\begin{frame} {LSBM hamming against uncoded LSBM simulations}
     \centering
-    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_k_speedup.png}
+    \includegraphics[width=\textwidth]{plots/hamming_benchmark_hcf_sim_pe.png}
 \end{frame}
 
-\begin{frame} {LSBM hamming against reg. LSBM}
+\begin{frame} {Change rate $\beta$ for different $k$}
     \centering
-    \includegraphics[height=0.36\textheight]{plots/hamming_benchmark_hcf_pe.png}
+    \includegraphics[width=\textwidth]{plots/hamming_benchmark_hcf_sim_beta.png}
+\end{frame}
+
+\begin{frame} {LSBM hamming against uncoded LSBM 500 grayscale images}
+    \centering
+    \includegraphics[width=\textwidth]{plots/hamming_benchmark_hcf_real_pe.png}
 \end{frame}
 
 \begin{frame}{Conclusion}
@@ -58,7 +63,7 @@
     \begin{itemize}
         \item \textbf{Completed Implementation:} Fully functional LSB Matching based upon matrix embedding with Hamming codes.
         \item \textbf{Fast Simulator derived:} Allows generating theoretical impacts for arbitrary embedding rates $\alpha$ via local interpolation.
-        \item \textbf{Results:} We empirically validated the efficiency of Hamming codes, proving they are substantially safer from detectability and evaluating precisely correctly compared to direct code simulations.
+        \item \textbf{Results:} Hamming codes reduce the change rate $\beta$ therefore improve detectability against HCF.
     \end{itemize}
 \end{frame}
 
