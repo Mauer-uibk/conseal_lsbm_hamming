@@ -14,28 +14,70 @@
     \titlepage
 \end{frame}
 
-\begin{frame}{1. True Embedding with LSBM and Hamming Codes}
-    \textbf{Approach}
+\begin{frame}{Hamming(7,4) Example with LSBM}
+    \textbf{Embedding $k=3$ message bits into $n=7$ cover elements:}
+    \vspace{0.5em}
+
     \begin{itemize}
-        \item Implemented matrix embedding explicitly by generating parity-check matrices $H$ for Hamming codes.
-        \item \textbf{Syndrome Calculation}: Compute $s = H \cdot y \pmod{2}$. The required change is $m - s \pmod{2}$.
-        \item \textbf{Modification}: Find the index to change based on the difference. 
-        \item \textbf{LSBM}: In LSB Matching, changing the LSB equates to randomly adding or subtracting $1$ from the pixel intensity, ensuring boundaries (like $0$ and $x_{max}$) are respected.
+        \item \textbf{Message bits:} $\mathbf{m} = [1, 0, 1]^T$
+        \item \textbf{Cover Block:} $\mathbf{x} = [155, 144, 133, 122, 111, 100, 99]^T$
+        \item \textbf{Extracted LSBs:} $\mathbf{v} = \mathbf{x} \bmod 2 = [1, 0, 1, 0, 1, 0, 1]^T$
+        \item \textbf{Parity Matrix $\mathbf{H}$:} (Columns represent binary 1 to 7)
+        \[
+        \mathbf{H} = \begin{pmatrix}
+        0 & 0 & 0 & 1 & 1 & 1 & 1 \\
+        0 & 1 & 1 & 0 & 0 & 1 & 1 \\
+        1 & 0 & 1 & 0 & 1 & 0 & 1
+        \end{pmatrix}
+        \]
+        \item \textbf{Syndrome:} $\mathbf{s} = \mathbf{H} \cdot \mathbf{v} \bmod 2 = [0, 0, 0]^T$
     \end{itemize}
 \end{frame}
 
-\begin{frame}{2. Simulating Hamming Codes}
-    \textbf{Simulation Strategy}
-    \begin{itemize}
-        \item Each Hamming code block changes with probability $P(\text{change}) = \frac{2^k - 1}{2^k}$.
-        \item The total number of modified blocks can be sampled directly using a Binomial distribution: \\ $\sim \text{Binomial}\left(N_{\text{blocks}}, \frac{2^k - 1}{2^k}\right)$.
-        \item Solves the need to explicitly execute code matrices over covers, massively increasing simulation speed.
-    \end{itemize}
+\begin{frame}{Hamming(7,4) Example with LSBM (cont.)}
+    \textbf{Matrix Embedding Logic:}
+    \begin{equation*}
+        \mathbf{d} = \mathbf{m} - \mathbf{s} = \begin{pmatrix} 1 \\ 0 \\ 1 \end{pmatrix} - \begin{pmatrix} 0 \\ 0 \\ 0 \end{pmatrix} = \begin{pmatrix} 1 \\ 0 \\ 1 \end{pmatrix}
+    \end{equation*}
+    
+    The difference vector $\mathbf{d}$ matches \textbf{Column 5} of $\mathbf{H}$. \\
     \vspace{0.5em}
-    \textbf{Interpolation for Target $\alpha$}
+    \textbf{Action:} Modify the $5^{\text{th}}$ cover element ($111 \rightarrow 110$ or $112$). The new LSB sequence will yield exactly $\mathbf{m}$ when multiplied by $\mathbf{H}$.
+\end{frame}
+\begin{frame}{Calculating Embedding Efficiency for given $\alpha$}
+    \textbf{Core Task:} Calculate the embedding efficiency ($e$) for a given target capacity ($\alpha$).
+    \vspace{0.5em}
+
+    \textbf{Problem:} Hamming codes only provide discrete capacities ($\alpha_k = \frac{k}{2^k - 1}$). 
+    For "impossible" target capacities like $\alpha = 0.50$, we must linearly interpolate between the two neighboring codes.
+    \vspace{0.5em}
+\end{frame}
+\begin{frame}{Calculating Embedding Efficiency: A Mathematical Example}
+    \textbf{Step 1: Find Bounding Block Sizes ($k$ and $k+1$)}
     \begin{itemize}
-        \item To achieve non-integer embedding rates $\alpha$, we linearly interpolate the change probabilities per element of the two neighboring Hamming codes $k$ and $k+1$.
+        \item $k=2$: $\alpha_2 = 2/3 \approx 0.667$, $\beta_2 = 1/4 = 0.250$
+        \item $k=3$: $\alpha_3 = 3/7 \approx 0.429$, $\beta_3 = 1/8 = 0.125$
     \end{itemize}
+    \vspace{0.2em}
+
+    \textbf{Step 2: Calculate the Mixing Weight ($w$)} \\
+    We calculate the fraction of the image embedded with $k=2$ blocks:
+    \begin{equation*}
+        w = \frac{\alpha - \alpha_3}{\alpha_2 - \alpha_3} = \frac{0.50 - 0.429}{0.667 - 0.429} \approx 0.30 \quad (30\% \text{ of capacity from } k=2)
+    \end{equation*}
+    \vspace{0.2em}
+    \textbf{Step 3: Interpolate Distortion ($\beta$) and Efficiency ($e$)}
+    \begin{equation*}
+        \beta_{\text{target}} = w\beta_2 + (1-w)\beta_3 = 0.30(0.250) + 0.70(0.125) = 0.1625
+    \end{equation*}
+    \begin{equation*}
+        e = \frac{\alpha}{\beta_{\text{target}}} = \frac{0.50}{0.1625} \approx 3.08 \text{ bits/change}
+    \end{equation*}
+\end{frame}
+
+\begin{frame} {Execution time for simulation and real embedding}
+    \centering
+    \includegraphics[width=\textwidth]{plots/hamming_benchmark_k_speedup.png}
 \end{frame}
 
 \begin{frame}{Embedding efficiency $\varepsilon$ for different $k$}
